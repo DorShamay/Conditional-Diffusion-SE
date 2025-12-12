@@ -9,7 +9,7 @@ import torch.nn.functional as F
 MAX_WAV_VALUE = 32768.0  # dor added
 
 
-class BinauralConditionalDataset(torch.utils.data.Dataset):
+class Dataset(torch.utils.data.Dataset):
     def __init__(self, audio_files, len_dataset):
         super().__init__()
         self.audio_files = audio_files
@@ -67,7 +67,7 @@ class BinauralConditionalDataset(torch.utils.data.Dataset):
 
 def from_path(audio_files, len_dataset, params, shuffle=True):
 
-    dataset = BinauralConditionalDataset(audio_files, len_dataset)
+    dataset = Dataset(audio_files, len_dataset)
 
     return torch.utils.data.DataLoader(
         dataset,

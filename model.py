@@ -92,7 +92,7 @@ class ResidualBlock(nn.Module):
         return (x + residual) / sqrt(2.0), skip
 
 
-class BinauralGrad(nn.Module):
+class Grad(nn.Module):
     def __init__(self, params):
         super().__init__()
         self.params = params

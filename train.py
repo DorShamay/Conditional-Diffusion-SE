@@ -6,7 +6,7 @@ import torch.nn as nn
 from tqdm import tqdm
 
 from dataset import from_path, MAX_WAV_VALUE
-from model import BinauralGrad
+from model import Grad
 
 import scipy.io
 from scipy.io import loadmat
@@ -32,7 +32,7 @@ def _nested_map(struct, map_fn):
     return map_fn(struct)
 
 
-class BinauralGradLearner:
+class GradLearner:
     def __init__(self, model_dir, model, train_dataset, valid_dataset, optimizer, params, fp16):
         os.makedirs(model_dir, exist_ok=True)
         self.model_dir = model_dir
@@ -318,7 +318,7 @@ def _train_impl(replica_id, model, train_dataset, valid_dataset, args, params):
     torch.backends.cudnn.benchmark = True
     opt = torch.optim.Adam(model.parameters(), lr=params.learning_rate)
 
-    learner = BinauralGradLearner(args["model_dir"], model, train_dataset, valid_dataset, opt, params,
+    learner = GradLearner(args["model_dir"], model, train_dataset, valid_dataset, opt, params,
                                   fp16=args["fp16"])
     learner.is_master = (replica_id == 0)
     learner.restore_from_checkpoint(args['weights_file'])
@@ -346,7 +346,7 @@ def train(args, params):
 
     train_dataset = from_path(training_filelist, len_dataset, params)
     valid_dataset = from_path(validation_filelist, len_dataset, params, shuffle=False)
-    model = BinauralGrad(params).to(device)
+    model = Grad(params).to(device)
 
     num_params_generator = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print("Number of trainable parameters generator:", num_params_generator)
