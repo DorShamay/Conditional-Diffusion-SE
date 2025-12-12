@@ -10,13 +10,10 @@ MAX_WAV_VALUE = 32768.0  # dor added
 
 
 class BinauralConditionalDataset(torch.utils.data.Dataset):
-    def __init__(self, audio_files, len_dataset, predict_mean_condition=False):
+    def __init__(self, audio_files, len_dataset):
         super().__init__()
         self.audio_files = audio_files
         self.len_dataset = len_dataset
-
-        self.predict_mean_condition = predict_mean_condition
-
 
         self.load_from_wavfiles()
 
@@ -29,11 +26,11 @@ class BinauralConditionalDataset(torch.utils.data.Dataset):
                     os.path.exists("y_train.npy"):
 
 
-                bsm_with_array_rot_train_data = np.load("y_train.npy")
-                bsm_with_head_rot_train_data = np.load("n_train.npy")
+                y_train = np.load("y_train.npy")
+                n_train = np.load("n_train.npy")
 
-            self.bsm_with_array_rot_data = bsm_with_array_rot_train_data
-            self.bsm_with_head_rot_data = bsm_with_head_rot_train_data
+            self.y = y_train
+            self.n = n_train
         else:
             if os.path.exists(
                     "n_valid.npy") and \
@@ -42,8 +39,8 @@ class BinauralConditionalDataset(torch.utils.data.Dataset):
                 bsm_with_array_rot_valid_data = np.load("y_valid.npy")
                 bsm_with_head_rot_valid_data = np.load("n_valid.npy")
 
-            self.bsm_with_array_rot_data = bsm_with_array_rot_valid_data
-            self.bsm_with_head_rot_data = bsm_with_head_rot_valid_data
+            self.y = bsm_with_array_rot_valid_data
+            self.n = bsm_with_head_rot_valid_data
 
 
 
@@ -53,30 +50,29 @@ class BinauralConditionalDataset(torch.utils.data.Dataset):
     def __getitem__(self, index):
         filename = self.audio_files[index]
 
-        audio = self.bsm_with_array_rot_data[index]
+        audio = self.y[index]
         audio = audio / MAX_WAV_VALUE
-        audio_bsm_with_array_rot = torch.FloatTensor(audio)
-        # audio_bsm_with_array_rot = audio_bsm_with_array_rot.T  # dor
+        y = torch.FloatTensor(audio)
+        # y = y.T  # dor
 
 
-        audio = self.bsm_with_head_rot_data[index]
+        audio = self.n[index]
         audio = audio / MAX_WAV_VALUE
-        audio_bsm_with_head_rot = torch.FloatTensor(audio)
-        # audio_bsm_with_head_rot = audio_bsm_with_head_rot.T  # dor
+        n = torch.FloatTensor(audio)
+        # n = n.T  # dor
 
-        return (audio_bsm_with_array_rot, audio_bsm_with_head_rot, filename)
+        return (y, n, filename)
 
 
 
-def from_path(audio_files, len_dataset, params, is_distributed=False):
+def from_path(audio_files, len_dataset, params, shuffle=True):
 
-    dataset = BinauralConditionalDataset(audio_files, len_dataset,
-                                         predict_mean_condition=getattr(params, "predict_mean_condition", False))
+    dataset = BinauralConditionalDataset(audio_files, len_dataset)
 
     return torch.utils.data.DataLoader(
         dataset,
         batch_size=params.batch_size,
-        shuffle=not is_distributed,
+        shuffle=shuffle,
         # num_workers=os.cpu_count(),
         num_workers=1,
         sampler=None,

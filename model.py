@@ -55,9 +55,8 @@ class DiffusionEmbedding(nn.Module):
 
 
 class ResidualBlock(nn.Module):
-    def __init__(self, n_mels, residual_channels, dilation, uncond=False):
+    def __init__(self, residual_channels, dilation, uncond=False):
         '''
-        :param n_mels: inplanes of conv1x1 for spectrogram conditional
         :param residual_channels: audio conv
         :param dilation: audio conv dilation
         :param uncond: disable spectrogram conditional
@@ -66,7 +65,6 @@ class ResidualBlock(nn.Module):
         self.dilated_conv = Conv1d(residual_channels, 2 * residual_channels, 3, padding=dilation, dilation=dilation)
         self.diffusion_projection = Linear(512, residual_channels)
         if not uncond: # conditional model
-            # self.conditioner_projection = Conv1d(n_mels, 2 * residual_channels, 1)
             self.conditioner_projection = Conv1d(1, 2 * residual_channels, 1)                       # dor: mono
             # self.conditioner_projection = Conv1d(2, 2 * residual_channels, 1)                       # dor: binaural
         else: # unconditional model
@@ -99,21 +97,16 @@ class BinauralGrad(nn.Module):
         super().__init__()
         self.params = params
         self.loss_per_layer = getattr(params, "loss_per_layer", 0)
-        self.use_mean_condition = getattr(params, "use_mean_condition", False)
-        self.predict_mean_condition = getattr(params, "predict_mean_condition", False)
-        self.warper = None
-        if not self.predict_mean_condition:
-            # self.input_projection = Conv1d(2, params.residual_channels, 1)     # dor: binaural
-            self.input_projection = Conv1d(1, params.residual_channels, 1)     # dor: mono
-            # self.output_projection = Conv1d(params.residual_channels, 2, 1)       # dor: binaural
-            self.output_projection = Conv1d(params.residual_channels, 1, 1)     # dor: mono
-        else:
-            self.input_projection = Conv1d(1, params.residual_channels, 1)
-            self.output_projection = Conv1d(params.residual_channels, 1, 1)
+
+        # self.input_projection = Conv1d(2, params.residual_channels, 1)     # dor: binaural
+        self.input_projection = Conv1d(1, params.residual_channels, 1)     # dor: mono
+        # self.output_projection = Conv1d(params.residual_channels, 2, 1)       # dor: binaural
+        self.output_projection = Conv1d(params.residual_channels, 1, 1)     # dor: mono
+
         self.diffusion_embedding = DiffusionEmbedding(len(params.noise_schedule))
 
         self.residual_layers = nn.ModuleList([
-                ResidualBlock(params.n_mels, params.residual_channels, 2**(i % params.dilation_cycle_length), uncond=params.unconditional)
+                ResidualBlock(params.residual_channels, 2**(i % params.dilation_cycle_length), uncond=params.unconditional)
                 for i in range(params.residual_layers)
         ])
         self.skip_projection = Conv1d(params.residual_channels, params.residual_channels, 1)
