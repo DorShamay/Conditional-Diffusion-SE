@@ -114,9 +114,8 @@ class Grad(nn.Module):
         nn.init.zeros_(self.output_projection.weight)
 
 
-    def forward(self, hoa_audio, diffusion_step, conditioner=None):
-        # x = audio.unsqueeze(1)
-        x = hoa_audio
+    def forward(self, x, diffusion_step, conditioner=None):
+        # x = x.unsqueeze(1)
         x = self.input_projection(x)
         x = F.relu(x)
 
